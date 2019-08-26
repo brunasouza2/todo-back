@@ -44,7 +44,9 @@ const USER = {
 async function main() {
     try{
         const database = new Db();
-        await database.connect();
+        await database.connect('taskapi');
+        const databaseUser = new Db();
+        await databaseUser.connect('usuario');
 
         await app.register([
             HapiJwt,
@@ -92,7 +94,7 @@ async function main() {
                             throw err   
                         },
                         query: {
-                            nome: Joi.string().max(10).min(2),
+                            userId: Joi.string().max(256).min(2),
                             skip: Joi.number().default(0),
                             limit: Joi.number().max(10).default(10)
                         },
@@ -121,9 +123,9 @@ async function main() {
                             throw erro
                         },
                         payload: {
-                            nome: Joi.string().max(50).required(),
+                            nome: Joi.string().required(),
                             done: Joi.boolean().required(),
-                            userId: Joi.number().required()
+                            userId: Joi.string()
                         },
                         headers: defaultHeader
                     }
@@ -178,9 +180,9 @@ async function main() {
                             id: Joi.string().max(40).required()
                         },
                         payload: {
-                            nome: Joi.string().max(50).required(),
+                            nome: Joi.string().required(),
                             done: Joi.boolean().required(),
-                            userId: Joi.number().required()
+                            userId: Joi.string()
                         },
                         headers: defaultHeader
                     }
@@ -216,19 +218,79 @@ async function main() {
                 },
                 async handler({payload : {usuario, senha}}) {
                     try {
-                        if(usuario !== USER.usuario || senha !== USER.senha)
+                        //if(usuario !== USER.usuario || senha !== USER.senha)
+                        //return false;
+
+                        let user = await databaseUser.findUser(usuario, senha)
+
+                        if(user==undefined || user.length === 0)
                         return false;
+
                         const tokenPayload = {usuario}
                         const token = Jwt.sign(tokenPayload, MINHA_CHAVE_SECRETA, {
                             expiresIn: "1m",
                         });
+                        user = {...user, token:token};
                         return {
-                            token
+                            user
                         }
                     } catch (error) {
                         console.error('Algo está errado', error)
                     }
                 }
+            },
+            {
+                method: 'POST',
+                path: '/v1/register',
+                config: {
+                    auth: false,
+                    tags: [ 'api' ],
+                    description: 'Registrar usuario',
+                    notes: 'com user e senha',
+                    validate: {
+                        failAction (r, h, erro) {
+                            throw erro
+                        },
+                        payload: {
+                            usuario: Joi.string().max(10).required(),
+                            senha: Joi.string().min(3).max(100).required()
+                        }
+                    }
+                },
+                async handler(request) {
+                    try {
+                        const {payload} = request
+                        return databaseUser.cadastrar(payload)
+                    } catch (error) {
+                        console.error('Algo está errado', error)
+                    }
+                }                
+            },
+            {
+                method: 'POST',
+                path: '/v1/finduser',
+                config: {
+                    auth: false,
+                    tags: [ 'api' ],
+                    description: 'Fid sdfsdf',
+                    notes: 'com user e senha',
+                    validate: {
+                        failAction (r, h, erro) {
+                            throw erro
+                        },
+                        payload: {
+                            usuario: Joi.string().max(10).required(),
+                            senha: Joi.string().min(3).max(100).required()
+                        }
+                    }
+                },
+                async handler({payload : {usuario, senha}}) {
+                    try {
+                        return databaseUser.findUser(usuario, senha)
+                    } catch (error) {
+                        console.error('Algo está errado', error)
+                    }
+                }   
             }
         ])
 

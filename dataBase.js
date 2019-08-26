@@ -8,11 +8,11 @@ class DataBase {
         this.taskCollection = {}
     }
 
-    async connect() {
+    async connect(collection) {
         const mongodbString = 'mongodb://localhost:27017/taskapi';
         const mongoClient = new MongoClient(mongodbString, {useNewUrlParser: true})
         const connection = await mongoClient.connect();
-        const taskCollection = await connection.db('mytask').collection('taskapi');
+        const taskCollection = await connection.db('mytask').collection(collection);
         this.taskCollection = taskCollection;
         return  this.taskCollection;
     }
@@ -23,15 +23,20 @@ class DataBase {
 
     async listar(obj, skip=0, limit=10) {
         let filtro = {}
-        if(obj.nome) {
+        if(obj.userId) {
             filtro = {
-                nome: {
-                    $regex: `.*${obj.nome}*.`, 
-                    $options: 'i'
-                }
+                userId: obj.userId
             }
         }
         return this.taskCollection.find(filtro).skip(skip).limit(limit).toArray();
+    }
+
+    async findUser(usuario, senha) {
+        let filtro = {
+            usuario: usuario,
+            senha: senha
+        }
+        return this.taskCollection.find(filtro).toArray();
     }
 
     async remover(id) {
