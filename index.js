@@ -218,8 +218,6 @@ async function main() {
                 },
                 async handler({payload : {usuario, senha}}) {
                     try {
-                        //if(usuario !== USER.usuario || senha !== USER.senha)
-                        //return false;
 
                         let user = await databaseUser.findUser(usuario, senha)
 
